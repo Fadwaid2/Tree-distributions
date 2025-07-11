@@ -98,7 +98,7 @@ class RWM(TreeLearner):
             weight = precomputed_dpt[(i, j)][1]
             w[i, j] = weight
             w[j, i] = weight
-            #refresh dpt after update (call function from utils)
+        #refresh dpt after update (call function from utils)
         precomputed_dpt = refresh_dpt(precomputed_dpt)
         return w
 

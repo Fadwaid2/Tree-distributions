@@ -1,33 +1,50 @@
 from argparse import ArgumentParser
 from pathlib import Path
+import pandas as pd
 import json
-
 import numpy as np
 
-
 def main(args): 
-
-    #initialize weight matrix 
+    # Either generate synthetic data or load dataset
+    if args.synthetic:
+        print("Generating synthetic data...")
+        train_data, test_data = generate_synthetic_data(args.n, args.seed)
+    else:
+        print(f"Reading train data from {args.train_data}")
+        train_data = pd.read_csv(args.train_data, index_col=0)
+        print(f"Reading test data from {args.test_data}")
+        test_data = pd.read_csv(args.test_data, index_col=0)
+    
+    # Initialize weight matrix 
     w = np.ones((n, n), dtype=np.float64)
     np.fill_diagonal(w, 0)
 
-    # precompute conditional distributions 
-    precomputed = algo.precompute_conditional_distributions()
-    
-    #compute weights 
-    precompute_weights = algo.learn_weights(precomputed) 
+    # Initialize the learning algorithm 
+    if args.method == 'RWM':
+        learner = RWM(epsilon=args.epsilon)
+    elif args.method == 'OFDE':
+        learner = OFDE()
+    elif args.method == 'Chow-Liu':
+        learner = 
+        # TO DO : do something here because it is not online learning so run some function there 
 
-    # online learning loop in range T 
-    for t in range(1, T+1):
+    # Precompute conditional distributions 
+    precomputed = learner.precompute_conditional_distributions()
+    # Compute weights 
+    precompute_weights = learner.learn_weights(precomputed) 
+
+    # Online Learning loop over T samples  
+    for t in range(1, args.T+1):
         # track current time step in algorithms 
         algo.current_time = t 
-
-        structure = algo.learn_structure(w)
-        w = algo.update_weight_matrix(w, structure, precomputed_weights)
+        structure = learner.learn_structure(w)
+        w = learner.update_weight_matrix(w, structure, precomputed_weights)
 
     # evaluate 
-    results = {'to do':to do,
-               ' ': }
+    results = {'log-likelihood':,
+               'shd ':, 
+               'bayesian-test': 
+                }
 
 
     # TO DO : Save results
@@ -41,13 +58,20 @@ def main(args):
 
 if __name__ == '__main__':
      
-    parser = ArgumentParser(description='Learn Tree-structured distribution')
+    parser = ArgumentParser(description='Learning Tree-structured distributions')
 
-    # To do : add arguments in parser here 
+    parser.add_argument('--train_data', type=Path, help='Path to the training dataset (CSV)')
+    parser.add_argument('--test_data', type=Path, help='Path to the testing dataset (CSV)')
+    parser.add_argument('--synthetic', type=bool, help='Flag to generate synthetic data instead of loading')
+    parser.add_argument('--output_folder', type=Path, required=True, help='Directory to save results and arguments')
+    parser.add_argument('--n', type=int, required=True, help='Number of nodes (variables) in the distribution')
+    parser.add_argument('--T', type=int, default=10, help='Number of time steps for online learning')
+    parser.add_argument('--seed', type=int, default=22, help='Random seed for synthetic data')
 
+    # Algorithms 
     algorithm = parser.add_argument_group('Method')
-    algorithm.add_argument('--method', type=str, choices = ['Chow-Liu','RWM','OFDE'], help='select an algorithm to learn the tree distribution.')
-    algorithm.add_argument('--epsilon', type=float, default=0.9, help='choose an epsilon value for RWM algorithm.')
+    algorithm.add_argument('--method', type=str, choices=['Chow-Liu', 'RWM', 'OFDE'], required=True, help='Algorithm to learn the tree distribution')
+    algorithm.add_argument('--epsilon', type=float, default=0.9, help='Epsilon value for RWM algorithm')
 
     args = parser.parse_args()
 
