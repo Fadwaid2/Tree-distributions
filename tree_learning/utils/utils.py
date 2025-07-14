@@ -12,3 +12,14 @@ def refresh_dpt(old_dpt):
     gc.collect()  #empty old DPT's memory with garbage collector 
     return new_dpt
 
+def sanitize_edges(edges):
+    sanitized = []
+    for edge in edges:
+        if isinstance(edge, (list, np.ndarray)) and len(edge) == 2:
+            sanitized.append(tuple(edge))
+        elif isinstance(edge, tuple) and len(edge) == 2:
+            sanitized.append(edge)
+        else:
+            raise ValueError(f"Invalid edge format: {edge}")
+    return sanitized
+

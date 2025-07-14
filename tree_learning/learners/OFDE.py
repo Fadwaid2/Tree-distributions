@@ -1,11 +1,11 @@
 import numpy as np
-import pandas as pd
-import networkx as nx
-from sklearn.metrics import *
-from collections import Counter
-from sklearn.metrics import *
-
+#import pandas as pd
 import random
+
+from collections import Counter
+
+from tree_learning.utils.structure import kruskal_algo
+from .base import TreeLearner
 
 class OFDE(TreeLearner):
 
@@ -19,8 +19,8 @@ class OFDE(TreeLearner):
         """
         Getting all the occurrences for all the sets of parents-children for all the possible edges in a graph
         """
-        data.columns = range(len(self.data.columns))
-        variables = list(self.data.columns)
+        columns = range(len(self.data.columns))
+        variables = list(columns)
         cond_pmf_values = {}
         for v in variables:
             #added to replace function one_var_conditional_distributions_set called in run_ofde
@@ -119,6 +119,7 @@ class OFDE(TreeLearner):
             for j in range(i+1,self.n):
                 #different perturbations are added to different edges 
                 perturbation = random.uniform(0, 1/beta)
+                print('precomputed_phi',precomputed_phi)
                 phi_i_j = precomputed_phi[(i,j)][t-1]   
                 w[i][j] = perturbation + phi_i_j
                 w[j][i] = w[i][j] 
@@ -131,7 +132,7 @@ class OFDE(TreeLearner):
         """
         structure = kruskal_algo(w)
         p_intermediate = self.generate_p_vector(structure)
-        self.p = rounding(p_intermediate)
+        self.p = self.rounding(p_intermediate)
         return structure 
 
 

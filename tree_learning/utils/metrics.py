@@ -1,6 +1,8 @@
 import baycomp  
 import numpy as np
 
+from .utils import sanitize_edges
+
 def bayesian_test(data1, data2, name1, name2):
     """
        Performs a Bayesian signed rank test between two methods results-Log likelihood (LL)- 
@@ -36,8 +38,9 @@ def log_likelihood(test_data, cpt, edge_list):
             parent, child = edge[0],edge[1]
             parent_value = row[parent]  
             node_value = row[child]  
-            prob = cpt[edge].at[node_value, parent_value]
+            prob = cpt[(parent, child)].at[node_value, parent_value]
             log_likelihood += np.log(max(prob, 1e-10))
+            print('log_likelihood', log_likelihood)
     return log_likelihood 
 
 
@@ -50,7 +53,7 @@ def shd(l_true, l_pred):
             Structural Hamming Distance (SHD) 
     """
     l_true_set = set(l_true)
-    l_pred_set = set(l_pred)
+    l_pred_set = set(sanitize_edges(l_pred))
 
     # missing edges from true graph 
     missing_edges = l_true_set - l_pred_set

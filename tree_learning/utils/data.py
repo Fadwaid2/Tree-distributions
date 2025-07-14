@@ -44,7 +44,7 @@ def generate_samples(G, k, num_samples=100, noise_prob=0.5):
         samples.append(list(noisy_sample.values()))  
     return samples
 
-def create_synthetic_data(n, T, k, e = 0.6, noise = 0.5, tree = True): 
+def generate_synthetic_data(n, T, k, tree, seed, e = 0.6, noise = 0.5): 
     """
         Generate synthetic data from random graph or tree (depending on bool velue of 'tree' parameter)
         Parameters : 
@@ -56,17 +56,22 @@ def create_synthetic_data(n, T, k, e = 0.6, noise = 0.5, tree = True):
     """
     if tree: 
         # generate tree graph 
-        G = nx.generators.trees.random_tree(n)
+        G = nx.generators.trees.random_tree(n, seed=seed)
     else: 
         # generate a random non tree graph  
-        G= nx.erdos_renyi_graph(n,e)
+        G= nx.erdos_renyi_graph(n, e, seed=seed)
     #store the true edges in a text file 
-    filename = f"k{k}/{n}_n_{T}_ts.txt"
+    filename = f"{n}_n_{T}_ts_k_{k}.txt"
     with open(filename, "w") as file:
         file.write(f"{list(G.edges())}\n")
     data = pd.DataFrame(generate_samples(G, k=k, num_samples=T, noise_prob=noise))
-    data.to_csv(f'/k{k}/{n}_n_{T}_ts.csv')
-    return data
+    data.to_csv(f'{n}_n_{T}_ts_k_{k}.csv')
+
+    # Split into train and test
+    split = int(0.7 * T)
+    train_data = data.iloc[:split]
+    test_data = data.iloc[split:]
+    return train_data, test_data, list(G.edges())
 
 def conditional_distributions_set(data, k):
     """

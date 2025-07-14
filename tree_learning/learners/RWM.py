@@ -1,8 +1,10 @@
 import random
 import numpy as np 
 
-from utils import * 
+from tree_learning.utils.structure import sampler
+from tree_learning.utils.utils import refresh_dpt
 
+from .base import TreeLearner
 
 class RWM(TreeLearner):
 

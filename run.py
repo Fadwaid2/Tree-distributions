@@ -4,54 +4,68 @@ import pandas as pd
 import json
 import numpy as np
 
+from tree_learning.learners.Chow_Liu import Chow_Liu
+from tree_learning.learners.RWM import RWM
+from tree_learning.learners.OFDE import OFDE
+from tree_learning.utils.data import generate_synthetic_data, conditional_distributions_set
+from tree_learning.utils.metrics import *
+
 def main(args): 
     # Either generate synthetic data or load dataset
     if args.synthetic:
         print("Generating synthetic data...")
-        train_data, test_data = generate_synthetic_data(args.n, args.seed)
+        train_data, test_data, graph = generate_synthetic_data(args.n, args.T, args.k, args.seed, args.tree, args.noise)
+        print('train_data, test_data',train_data, test_data, graph)
     else:
         print(f"Reading train data from {args.train_data}")
         train_data = pd.read_csv(args.train_data, index_col=0)
         print(f"Reading test data from {args.test_data}")
         test_data = pd.read_csv(args.test_data, index_col=0)
-    
-    # Initialize weight matrix 
-    w = np.ones((n, n), dtype=np.float64)
-    np.fill_diagonal(w, 0)
 
     # Initialize the learning algorithm 
     if args.method == 'RWM':
-        learner = RWM(epsilon=args.epsilon)
+        learner = RWM(data=train_data, k=args.k, epsilon=args.epsilon)
     elif args.method == 'OFDE':
-        learner = OFDE()
+        learner = OFDE(data=train_data, k=args.k)
     elif args.method == 'Chow-Liu':
-        learner = 
-        # TO DO : do something here because it is not online learning so run some function there 
+        # Chow-Liu is an offline method so get results direclty from here 
+        learner = Chow_Liu(data=train_data, k=args.k)
+        cl_weight, cl_structure = learner.run_chow_liu()
+        print('chow liu', cl_weight, cl_structure)
+        # TO DO: store results here is needed 
+
+    #assert #make sure that the user chooses either RWM or ofde the online learning methods 
+    print('make sure learner is correct', learner)
+    # Initialize weight matrix 
+    w = np.ones((args.n, args.n), dtype=np.float64)
+    np.fill_diagonal(w, 0)
 
     # Precompute conditional distributions 
     precomputed = learner.precompute_conditional_distributions()
     # Compute weights 
-    precompute_weights = learner.learn_weights(precomputed) 
+    precomputed_weights = learner.learn_weights(precomputed) 
 
     # Online Learning loop over T samples  
     for t in range(1, args.T+1):
         # track current time step in algorithms 
-        algo.current_time = t 
+        learner.current_time = t 
+        print('learner.current_time', learner.current_time)
         structure = learner.learn_structure(w)
         w = learner.update_weight_matrix(w, structure, precomputed_weights)
+        print('w, structure', w, structure)
 
     # evaluate 
-    results = {'log-likelihood':,
-               'shd ':, 
-               'bayesian-test': 
-                }
+    results = {'log-likelihood': log_likelihood(test_data, conditional_distributions_set(train_data, args.k), structure),
+               'shd': shd(graph, structure)
+       }
+
+    # to do later 
+    #comparison_2methods_results = {'bayesian-test': bayesian_test(data1, data2, name1, name2)}
 
 
-    # TO DO : Save results
     args.output_folder.mkdir(exist_ok=True)
     with open(args.output_folder / 'arguments.json', 'w') as f:
         json.dump(vars(args), f, default=str)
-   # to edit here 
     with open(args.output_folder / 'results.json', 'w') as f:
         json.dump(results, f, default=list)
 
@@ -66,7 +80,10 @@ if __name__ == '__main__':
     parser.add_argument('--output_folder', type=Path, required=True, help='Directory to save results and arguments')
     parser.add_argument('--n', type=int, required=True, help='Number of nodes (variables) in the distribution')
     parser.add_argument('--T', type=int, default=10, help='Number of time steps for online learning')
+    parser.add_argument('--k', type=int, default=2, help='Alphabet size (values taken by the variables)')
+    parser.add_argument('--tree', type=bool, help='Flag to generate synthetic data from tree')
     parser.add_argument('--seed', type=int, default=22, help='Random seed for synthetic data')
+    parser.add_argument('--noise', type=float, default=0.5, help='Noise for synthetic data')
 
     # Algorithms 
     algorithm = parser.add_argument_group('Method')
