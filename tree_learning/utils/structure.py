@@ -255,6 +255,7 @@ def kruskal_algo(w):
             list_edges.append((i, j))
             adjacency_matrix[i][j]=1
             adjacency_matrix[j][i]=1
+    
     return adjacency_matrix
 
 

@@ -67,11 +67,11 @@ def generate_synthetic_data(n, T, k, tree, seed, e = 0.6, noise = 0.5):
     data = pd.DataFrame(generate_samples(G, k=k, num_samples=T, noise_prob=noise))
     data.to_csv(f'{n}_n_{T}_ts_k_{k}.csv')
 
-    # Split into train and test
-    split = int(0.7 * T)
-    train_data = data.iloc[:split]
-    test_data = data.iloc[split:]
-    return train_data, test_data, list(G.edges())
+    # Generate new data for test set : 30%
+    test_set_ratio = int((0.3 * T) / 0.7)
+    test_data = pd.DataFrame(generate_samples(G, k=k, num_samples=test_set_ratio, noise_prob=noise))
+    test_data.to_csv(f'test_{n}_n_{T}_ts_k_{k}.csv')
+    return data, test_data, list(G.edges())
 
 def conditional_distributions_set(data, k):
     """

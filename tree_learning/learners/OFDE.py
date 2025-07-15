@@ -67,14 +67,15 @@ class OFDE(TreeLearner):
         return proba_dict
 
 
-    def get_weight_phi(self, p, c, precomputed_cond_probas, precomputed_cond_proba_1_var):
+    def get_weight_phi(self, p, c, precomputed_cond_probas, precomputed_cond_proba_1_var, t):
         """
         Compute weight phi 
         """
-        t = self.current_time
-        value_i = self.data.iloc[t-1,p]
-        value_j = self.data.iloc[t-1,c]
-
+        #t = self.current_time
+        print('data in get weight phi',self.data)
+        value_i = self.data.iloc[t,p]
+        value_j = self.data.iloc[t,c] #was t-1 before 
+        print('t in get weight phi',t, p,c, 'values',value_i,value_j)
         two_d_marginal = self.edge_cond_proba_dict((p,c), precomputed_cond_probas) 
         one_d_p = self.edge_cond_proba_dict(p, precomputed_cond_proba_1_var, one_var=True) 
         one_d_c = self.edge_cond_proba_dict(c, precomputed_cond_proba_1_var, one_var=True)
@@ -97,11 +98,13 @@ class OFDE(TreeLearner):
             for j in range(i+1, self.n):
                 #for each (parent,child) we have a list 
                 dpt_list = []
-                for t in range(1, self.T+1):
-                    self.current_time = t
-                    phi_time_t = self.get_weight_phi(i, j, precomputed_cond_probas, precomputed_cond_proba_1_var)
+                for t in range(self.T):
+                    #self.current_time = t
+                    phi_time_t = self.get_weight_phi(i, j, precomputed_cond_probas, precomputed_cond_proba_1_var, t)
                     dpt_list.append(phi_time_t)
+                    print(dpt_list)
                 precomputed_phi[(i,j)] = dpt_list
+        print(precomputed_phi)
         return precomputed_phi
 
     def update_weight_matrix(self, w, structure, precomputed_phi, **kwargs):
@@ -119,7 +122,6 @@ class OFDE(TreeLearner):
             for j in range(i+1,self.n):
                 #different perturbations are added to different edges 
                 perturbation = random.uniform(0, 1/beta)
-                print('precomputed_phi',precomputed_phi)
                 phi_i_j = precomputed_phi[(i,j)][t-1]   
                 w[i][j] = perturbation + phi_i_j
                 w[j][i] = w[i][j] 
