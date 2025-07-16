@@ -40,8 +40,7 @@ def log_likelihood(test_data, cpt, edge_list):
             node_value = row[child]  
             prob = cpt[(parent, child)].at[node_value, parent_value]
             log_likelihood += np.log(max(prob, 1e-10))
-            print('log_likelihood', log_likelihood)
-    return log_likelihood 
+    return log_likelihood/len(test_data)
 
 
 def shd(l_true, l_pred):

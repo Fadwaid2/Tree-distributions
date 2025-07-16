@@ -1,8 +1,10 @@
+import json
+import ast
+import pandas as pd
+import numpy as np
+
 from argparse import ArgumentParser
 from pathlib import Path
-import pandas as pd
-import json
-import numpy as np
 
 from tree_learning.learners.Chow_Liu import Chow_Liu
 from tree_learning.learners.RWM import RWM
@@ -21,6 +23,10 @@ def main(args):
         train_data = pd.read_csv(args.train_data, index_col=0)
         print(f"Reading test data from {args.test_data}")
         test_data = pd.read_csv(args.test_data, index_col=0)
+        print(f'Reading true graph list of edges from {args.true_graph}')
+        with open(args.true_graph, "r") as file:
+            graph = ast.literal_eval(file.read().strip())  # Convert string to list of tuples 
+        
 
     # Initialize the learning algorithm 
     if args.method == 'RWM':
@@ -35,7 +41,6 @@ def main(args):
         # TO DO: store results here is needed 
 
     #assert #make sure that the user chooses either RWM or ofde the online learning methods 
-    print('make sure learner is correct', learner)
     # Initialize weight matrix 
     w = np.ones((args.n, args.n), dtype=np.float64)
     np.fill_diagonal(w, 0)
@@ -44,15 +49,14 @@ def main(args):
     precomputed = learner.precompute_conditional_distributions()
     # Compute weights 
     precomputed_weights = learner.learn_weights(precomputed) 
-
+    print(precomputed_weights)
     # Online Learning loop over T samples  
     for t in range(1, args.T+1):
         # track current time step in algorithms 
         learner.current_time = t 
-        print('learner.current_time', learner.current_time)
         structure = learner.learn_structure(w)
         w = learner.update_weight_matrix(w, structure, precomputed_weights)
-        print('w, structure', w, structure)
+
 
     # evaluate 
     results = {'log-likelihood': log_likelihood(test_data, conditional_distributions_set(train_data, args.k), structure),
@@ -76,6 +80,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--train_data', type=Path, help='Path to the training dataset (CSV)')
     parser.add_argument('--test_data', type=Path, help='Path to the testing dataset (CSV)')
+    parser.add_argument('--true_graph', type=Path, help='Path to the true graph list of edges (.txt file)')
     parser.add_argument('--synthetic', type=bool, help='Flag to generate synthetic data instead of loading')
     parser.add_argument('--output_folder', type=Path, required=True, help='Directory to save results and arguments')
     parser.add_argument('--n', type=int, required=True, help='Number of nodes (variables) in the distribution')

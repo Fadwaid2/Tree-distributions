@@ -19,8 +19,8 @@ class OFDE(TreeLearner):
         """
         Getting all the occurrences for all the sets of parents-children for all the possible edges in a graph
         """
-        columns = range(len(self.data.columns))
-        variables = list(columns)
+        self.data.columns = list(range(self.n))
+        variables = list(range(self.n)) 
         cond_pmf_values = {}
         for v in variables:
             #added to replace function one_var_conditional_distributions_set called in run_ofde
@@ -28,7 +28,7 @@ class OFDE(TreeLearner):
                 joint_states = self.data.groupby([v] , observed=True).size().fillna(0)
                 cond_pmf_values[(v)] = joint_states 
             else: 
-                parents = list(self.data.columns)
+                parents = list(variables)
                 parents.remove(v) #possible parents
                 for p in parents:
                     #calculate joint P(node1 and node2)
@@ -44,7 +44,7 @@ class OFDE(TreeLearner):
             "cond_proba_one_var": cond_proba_one_var
         }
 
-    def edge_cond_proba_dict(self, edge, Ne, one_var=False):
+    def edge_cond_proba_dict(self, edge, Ne, time_step, one_var=False):
         """
         To retrieve the occurrence of a certain edge from the total previous dict containing all edges
         """
@@ -60,10 +60,10 @@ class OFDE(TreeLearner):
                 df = Ne[x]
                 for row in df.index:
                     if one_var: 
-                        proba_dict[row]= ((df.at[row]+1/2)/(self.T+self.k/2))
+                        proba_dict[row]= ((df.at[row]+1/2)/(time_step+self.k/2))
                     else:
                         for col in df.columns: 
-                            proba_dict[(row, col)]= ((df.at[row, col]+1/2)/(self.T+(self.k**2)/2)) 
+                            proba_dict[(row, col)]= ((df.at[row, col]+1/2)/(time_step+(self.k**2)/2)) 
         return proba_dict
 
 
@@ -72,13 +72,11 @@ class OFDE(TreeLearner):
         Compute weight phi 
         """
         #t = self.current_time
-        print('data in get weight phi',self.data)
         value_i = self.data.iloc[t,p]
         value_j = self.data.iloc[t,c] #was t-1 before 
-        print('t in get weight phi',t, p,c, 'values',value_i,value_j)
-        two_d_marginal = self.edge_cond_proba_dict((p,c), precomputed_cond_probas) 
-        one_d_p = self.edge_cond_proba_dict(p, precomputed_cond_proba_1_var, one_var=True) 
-        one_d_c = self.edge_cond_proba_dict(c, precomputed_cond_proba_1_var, one_var=True)
+        two_d_marginal = self.edge_cond_proba_dict((p,c), precomputed_cond_probas, t+1) 
+        one_d_p = self.edge_cond_proba_dict(p, precomputed_cond_proba_1_var, t+1, one_var=True) 
+        one_d_c = self.edge_cond_proba_dict(c, precomputed_cond_proba_1_var, t+1, one_var=True)
 
         #Filter out unnecessary values and only keep those in dataset : phi calculation are only done for relevant values 
         
@@ -102,9 +100,7 @@ class OFDE(TreeLearner):
                     #self.current_time = t
                     phi_time_t = self.get_weight_phi(i, j, precomputed_cond_probas, precomputed_cond_proba_1_var, t)
                     dpt_list.append(phi_time_t)
-                    print(dpt_list)
                 precomputed_phi[(i,j)] = dpt_list
-        print(precomputed_phi)
         return precomputed_phi
 
     def update_weight_matrix(self, w, structure, precomputed_phi, **kwargs):
@@ -181,7 +177,7 @@ class OFDE(TreeLearner):
                 break
         
         if x[i] == 0 and x[j] == 0: #if so select a new index i 
-            i = random.randint(0,t)
+            i = random.randint(0,length)
         elif x[i] + x[j] <= 1:
             if np.random.rand() < x[i] / (x[i] + x[j]):
                 x[i], x[j] = x[i] + x[j], 0
