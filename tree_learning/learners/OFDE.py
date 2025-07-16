@@ -114,13 +114,15 @@ class OFDE(TreeLearner):
             w is the weight matrix to update with FPL 
         """
         t = self.current_time
-        w = w.copy()
+        #w = w.copy()
         #horizon independent case
         beta = (1/self.n)*np.sqrt(2/t) 
 
-        for i in range(self.n):
-            for j in range(i+1,self.n):
+        for edge in structure: 
+        #for i in range(self.n):
+        #    for j in range(i+1,self.n):
                 #different perturbations are added to different edges 
+                i, j = edge[0], edge[1]
                 perturbation = random.uniform(0, 1/beta)
                 phi_i_j = precomputed_phi[(i,j)][t-1]   
                 w[i][j] = perturbation + phi_i_j
@@ -149,9 +151,11 @@ class OFDE(TreeLearner):
         alpha = 1/(4*np.sqrt(2*self.current_time))
         # f is the list of edges so convert it to a numpy array with 0 and 1 
         f_array = []
+        edge_set = set(f) #make sure there are no repeated edges in the list 
+
         for i in range(self.n):
             for j in range(i+1,self.n):
-                if f[i][j]!=0:
+                if (i, j) in edge_set:
                     f_array.append(1)  #when edge exists
                 else:
                     f_array.append(0)  #no edge

@@ -252,11 +252,11 @@ def kruskal_algo(w):
     for weight, i, j in edges:
         if uf.find(i) != uf.find(j):
             uf.union(i, j)
-            list_edges.append((i, j))
+            list_edges.append((min(i,j), max(i,j)))
             adjacency_matrix[i][j]=1
             adjacency_matrix[j][i]=1
     
-    return adjacency_matrix
+    return list_edges
 
 
 
