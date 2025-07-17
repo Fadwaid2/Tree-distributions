@@ -13,11 +13,10 @@ from tree_learning.utils.data import generate_synthetic_data, conditional_distri
 from tree_learning.utils.metrics import *
 
 def main(args): 
-    # Either generate synthetic data or load dataset
+    # Either generate synthetic data or directly load available dataset  
     if args.synthetic:
-        print("Generating synthetic data...")
+        print(f"Generating synthetic data with {args.n} nodes, {args.T} samples and alphabet size {args.k}")
         train_data, test_data, graph = generate_synthetic_data(args.n, args.T, args.k, args.seed, args.tree, args.noise)
-        print('train_data, test_data',train_data, test_data, graph)
     else:
         print(f"Reading train data from {args.train_data}")
         train_data = pd.read_csv(args.train_data, index_col=0)
@@ -34,36 +33,41 @@ def main(args):
     elif args.method == 'OFDE':
         learner = OFDE(data=train_data, k=args.k)
     elif args.method == 'Chow-Liu':
-        # Chow-Liu is an offline method so get results direclty from here 
+        # Chow-Liu is an offline method so get results direclty here 
         learner = Chow_Liu(data=train_data, k=args.k)
-        cl_weight, cl_structure = learner.run_chow_liu()
-        print('chow liu', cl_weight, cl_structure)
-        # TO DO: store results here is needed 
-
-    #assert #make sure that the user chooses either RWM or ofde the online learning methods 
-    # Initialize weight matrix 
-    w = np.ones((args.n, args.n), dtype=np.float64)
-    np.fill_diagonal(w, 0)
-
-    # Precompute conditional distributions 
-    precomputed = learner.precompute_conditional_distributions()
-    # Compute weights 
-    precomputed_weights = learner.learn_weights(precomputed) 
-    print(precomputed_weights)
-    # Online Learning loop over T samples  
-    for t in range(1, args.T+1):
-        # track current time step in algorithms 
-        learner.current_time = t 
-        structure = learner.learn_structure(w)
-        w = learner.update_weight_matrix(w, structure, precomputed_weights)
+        cl_weight, cl_structure = learner.run_chow_liu() 
+        results = {
+            'log-likelihood': log_likelihood(test_data, conditional_distributions_set(train_data, args.k), cl_structure),
+            'shd': shd(graph, cl_structure)
+        }
+    else:
+        raise ValueError("Unsupported method. Choose from: RWM, OFDE, Chow-Liu.")
 
 
-    # evaluate 
-    results = {'log-likelihood': log_likelihood(test_data, conditional_distributions_set(train_data, args.k), structure),
-               'shd': shd(graph, structure)
-       }
+    if args.method in ['RWM', 'OFDE']:
+        # Initialize weight matrix 
+        w = np.ones((args.n, args.n), dtype=np.float64)
+        np.fill_diagonal(w, 0)
 
-    # to do later 
+        # Precompute conditional distributions 
+        precomputed = learner.precompute_conditional_distributions()
+        # Compute weights 
+        precomputed_weights = learner.learn_weights(precomputed) 
+
+        # Online Learning loop over T samples  
+        for t in range(1, args.T+1):
+            # track current time step in OL algorithms 
+            learner.current_time = t 
+            structure = learner.learn_structure(w)
+            w = learner.update_weight_matrix(w, structure, precomputed_weights)
+
+
+        # evaluate 
+        results = {'log-likelihood': log_likelihood(test_data, conditional_distributions_set(train_data, args.k), structure),
+                   'shd': shd(graph, structure)
+           }
+
+    # uncomment to call comparison between two different methods data1 and data2 are two log-likelihoods arrays from methods 1 and 2 across different datasets  
     #comparison_2methods_results = {'bayesian-test': bayesian_test(data1, data2, name1, name2)}
 
 

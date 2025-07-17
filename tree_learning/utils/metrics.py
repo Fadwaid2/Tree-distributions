@@ -42,7 +42,6 @@ def log_likelihood(test_data, cpt, edge_list):
             log_likelihood += np.log(max(prob, 1e-10))
     return log_likelihood/len(test_data)
 
-
 def shd(l_true, l_pred):
     """
         Takes two lists : 

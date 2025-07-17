@@ -37,7 +37,6 @@ def generate_samples(G, k, num_samples=100, noise_prob=0.5):
             neighbor_values = [sample[neighbor] for neighbor in neighbors if neighbor in sample]
             # sample based on neighbors' values
             sample[node] = sample_from_cpt(0.7, neighbor_values, k)
-
         # adding noise
         noisy_sample = {key: (value if np.random.rand() > noise_prob else k-1-value) 
                         for key, value in sample.items()}
@@ -66,7 +65,6 @@ def generate_synthetic_data(n, T, k, tree, seed, e = 0.6, noise = 0.5):
         file.write(f"{list(G.edges())}\n")
     data = pd.DataFrame(generate_samples(G, k=k, num_samples=T, noise_prob=noise))
     data.to_csv(f'{n}_n_{T}_ts_k_{k}.csv')
-
     # Generate new data for test set : 30%
     test_set_ratio = int((0.3 * T) / 0.7)
     test_data = pd.DataFrame(generate_samples(G, k=k, num_samples=test_set_ratio, noise_prob=noise))

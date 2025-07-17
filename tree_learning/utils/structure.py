@@ -191,7 +191,7 @@ def sampler(w, r=0):
                 CM_previous = CM_current 
                 #del CM_current
                 #del adj_before
-                #gc.collect() # empty memory (needed for big exeriments) 
+                #gc.collect() # empty memory (needed for big experiments) 
                 i = 1 #reset i to 1 again because we restart from the root 0 everytime    
             else:
                 w=delete(w,e)

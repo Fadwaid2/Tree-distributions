@@ -24,7 +24,7 @@ class RWM(TreeLearner):
 
     def generate_distributions(self):
         """
-        Discretization Definition 3.6 from https://arxiv.org/pdf/2405.07914#appendix.C
+        Discretization from Definition 3.6 from https://arxiv.org/pdf/2405.07914#appendix.C
         """
         ell_range = self.compute_ell_range()
         distributions = []
@@ -40,7 +40,7 @@ class RWM(TreeLearner):
                     P_sigma_copy[i] = self.tau * (1 + self.gamma) ** ell
                     # normalize to ensure sum(P_sigma) = 1
                     P_sigma_copy[j] = 1 - np.sum(P_sigma_copy)
-                    # check if the distribution is valid (non-negative probabilities)
+                    # check if the distribution is valid 
                     if all(P_sigma_copy >= 0):
                         distributions.append(P_sigma_copy)
         return distributions

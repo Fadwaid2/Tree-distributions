@@ -1,5 +1,4 @@
 import numpy as np
-#import pandas as pd
 import random
 
 from collections import Counter
@@ -23,8 +22,7 @@ class OFDE(TreeLearner):
         variables = list(range(self.n)) 
         cond_pmf_values = {}
         for v in variables:
-            #added to replace function one_var_conditional_distributions_set called in run_ofde
-            if no_parent: 
+            if no_parent: # v is a root node 
                 joint_states = self.data.groupby([v] , observed=True).size().fillna(0)
                 cond_pmf_values[(v)] = joint_states 
             else: 
@@ -46,9 +44,8 @@ class OFDE(TreeLearner):
 
     def edge_cond_proba_dict(self, edge, Ne, time_step, one_var=False):
         """
-        To retrieve the occurrence of a certain edge from the total previous dict containing all edges
+        Retrieves the occurrence of a certain edge from the total previous dict containing all edges
         """
-
         if one_var: 
             proba_dict = {key:1/self.k for key in [i for i in range(self.k)]} # 1 variable 
         else: 
@@ -69,35 +66,30 @@ class OFDE(TreeLearner):
 
     def get_weight_phi(self, p, c, precomputed_cond_probas, precomputed_cond_proba_1_var, t):
         """
-        Compute weight phi 
+        Compute weight phi, see fromula 5 in  https://www.auai.org/uai2016/proceedings/papers/116.pdf
         """
-        #t = self.current_time
         value_i = self.data.iloc[t,p]
-        value_j = self.data.iloc[t,c] #was t-1 before 
+        value_j = self.data.iloc[t,c]
         two_d_marginal = self.edge_cond_proba_dict((p,c), precomputed_cond_probas, t+1) 
         one_d_p = self.edge_cond_proba_dict(p, precomputed_cond_proba_1_var, t+1, one_var=True) 
         one_d_c = self.edge_cond_proba_dict(c, precomputed_cond_proba_1_var, t+1, one_var=True)
 
         #Filter out unnecessary values and only keep those in dataset : phi calculation are only done for relevant values 
-        
         theta_i = one_d_p[value_i]
         theta_j = one_d_c[value_j]
         theta_ij = two_d_marginal[(value_i,value_j)]
         return theta_i * theta_j / theta_ij if theta_ij > 0 else 0
 
     def learn_weights(self, precomputed):
-
-        #from function precompute_phi 
         precomputed_phi = {}
         precomputed_cond_probas = precomputed['cond_probas']
         precomputed_cond_proba_1_var = precomputed['cond_proba_one_var']
 
         for i in range(self.n):
             for j in range(i+1, self.n):
-                #for each (parent,child) we have a list 
+                #for each (parent,child) we have a list of probabilities across all time steps 
                 dpt_list = []
                 for t in range(self.T):
-                    #self.current_time = t
                     phi_time_t = self.get_weight_phi(i, j, precomputed_cond_probas, precomputed_cond_proba_1_var, t)
                     dpt_list.append(phi_time_t)
                 precomputed_phi[(i,j)] = dpt_list
@@ -105,30 +97,24 @@ class OFDE(TreeLearner):
 
     def update_weight_matrix(self, w, structure, precomputed_phi, **kwargs):
         """
-        Follow-the-Perturbed-Leader algorithm 
-            t is the current time step 
-            w is the weight matrix to update with FPL 
+        Updates the weight matrix using Follow-the-Perturbed-Leader (FPL) algorithm 
+            w: weight matrix to update with FPL
+            structure (list of edges) from Kruskal's algorithm    
         """
         t = self.current_time
-        #w = w.copy()
-        #horizon independent case
+        #horizon independent case parameter (see paper) 
         beta = (1/self.n)*np.sqrt(2/t) 
-
         for edge in structure: 
-        #for i in range(self.n):
-        #    for j in range(i+1,self.n):
-                #different perturbations are added to different edges 
-                i, j = edge[0], edge[1]
-                perturbation = random.uniform(0, 1/beta)
-                phi_i_j = precomputed_phi[(i,j)][t-1]   
-                w[i][j] = perturbation + phi_i_j
-                w[j][i] = w[i][j] 
-
+            i, j = edge[0], edge[1]
+            perturbation = random.uniform(0, 1/beta)
+            phi_i_j = precomputed_phi[(i,j)][t-1]   
+            w[i][j] = perturbation + phi_i_j
+            w[j][i] = w[i][j] 
         return w
 
     def learn_structure(self, w, **kwargs):
         """
-        Run Kruskal's algorithm and update p via swap rounding.
+        Calling Kruskal's algorithm and update p via swap rounding.
         """
         structure = kruskal_algo(w)
         p_intermediate = self.generate_p_vector(structure)
@@ -145,7 +131,6 @@ class OFDE(TreeLearner):
             alpha: the mixing variable
         """
         alpha = 1/(4*np.sqrt(2*self.current_time))
-        # f is the list of edges so convert it to a numpy array with 0 and 1 
         f_array = []
         edge_set = set(f) #make sure there are no repeated edges in the list 
 
@@ -154,8 +139,7 @@ class OFDE(TreeLearner):
                 if (i, j) in edge_set:
                     f_array.append(1)  #when edge exists
                 else:
-                    f_array.append(0)  #no edge
-                    
+                    f_array.append(0)  #no edge  
         f_array = np.array(f_array)
         return alpha*self.p +(1-alpha)*f_array
 
@@ -163,7 +147,8 @@ class OFDE(TreeLearner):
     def rounding(x):
         """
         Swap rounding method to project on matroid 
-        Input: x: this will be the fractional point aka the weight that FPL gave as output 
+        Input: 
+            x: this will be the fractional point aka the weight that FPL gave as output 
         """
         x = x.copy()
         length = len(x)-1
@@ -184,10 +169,17 @@ class OFDE(TreeLearner):
             else:
                 x[i], x[j] = 0, x[i] + x[j]
         else:
-            if np.random.rand() < (1 - x[j]) / (2 - x[i] - x[j]):
-                x[i], x[j] = 1, x[i] + x[j] - 1
-            else:
-                x[i], x[j] = x[i] + x[j] - 1, 1         
+            denom = 2 - x[i] - x[j]
+            if denom <= 1e-8: #ensure denominator is valid 
+                if np.random.rand() < 0.5:
+                    x[i], x[j] = 1, x[i] + x[j] - 1
+                else:
+                    x[i], x[j] = x[i] + x[j] - 1, 1
+            else: 
+                if np.random.rand() < (1 - x[j]) /denom:
+                    x[i], x[j] = 1, x[i] + x[j] - 1
+                else:
+                    x[i], x[j] = x[i] + x[j] - 1, 1         
         return x 
 
 

@@ -39,7 +39,7 @@ class Chow_Liu(TreeLearner):
         return structure 
 
     def update_weight_matrix(self, w, structure, precomputed, **kwargs):
-        # Dummy/no-op implementation for now
+        # Dummy/no-op implementation since Chow-Liu is an offline algorithm and doesnt need updates 
         return w
 
     def run_chow_liu(self):
