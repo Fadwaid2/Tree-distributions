@@ -1,4 +1,4 @@
-# To-be-named-later
+# Learning-Tree-distributions
 Python repository for the paper "Learning Tree-structured Distributions". It contains the implementation of the two following Online Learning algorithms: 
 
 
